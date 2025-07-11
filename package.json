@@ -1,0 +1,10 @@
+{
+  "name": "telegram-webhook-bot-node",
+  "version": "1.0.0",
+  "main": "api/webhook.js",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "node-fetch": "^3.3.2"
+  }
+}
