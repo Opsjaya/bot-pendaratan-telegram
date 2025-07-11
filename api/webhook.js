@@ -52,10 +52,33 @@ export default async (req, res) => {
       return !!data;
     };
 
-    if (text === "/start") {
-      await sendMessage(`👋 *Halo!* Selamat datang di *Bot Pendaratan Appendiks*.\n\nKetik */format* untuk melihat format input.\nKetik */daftar* jika belum terdaftar.`);
-      return res.status(200).json({ ok: true });
-    }
+   if (text === "/start") {
+  await sendMessage(`👋 *Halo, Petugas Enumerator!*
+
+Selamat datang di *Bot Pendataan Pendaratan Ikan Appendiks* 🐟🚤.
+
+Bot ini membantu Anda *mencatat data pendaratan ikan secara cepat dan rapi* langsung dari Telegram, sehingga Anda *tidak perlu repot mencatat manual dan rekap ulang*.
+
+✨ **Fitur Bot:**
+✅ Input data pendaratan langsung via chat  
+✅ Validasi kode kapal, alat tangkap, dan jenis ikan otomatis  
+✅ Data langsung tersimpan ke sistem secara real-time  
+✅ Mudah digunakan kapan saja, di mana saja
+
+✨ **Cara Penggunaan:**
+1️⃣ Ketik */format* untuk melihat format input.  
+2️⃣ Ketik */daftar* jika Anda belum terdaftar.  
+3️⃣ Setelah terdaftar, Anda dapat langsung mengirim data pendaratan sesuai format.
+
+🪐 Data Anda akan membantu *pengelolaan sumber daya ikan lebih baik dan akurat*.  
+Terima kasih telah menjadi bagian dari *Enumerasi Cerdas Appendiks*.
+
+—
+
+*Salam, Tim Appendiks*`);
+  return res.status(200).json({ ok: true });
+}
+
 
     if (text === "/format") {
       await sendMessage(`✏️ *Format Input:*
