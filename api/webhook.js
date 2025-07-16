@@ -11,7 +11,7 @@ if (!admin.apps.length) {
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://appendiks-e02a8-default-rtdb.firebaseio.com",
+    databaseURL: "https://appendiks-966f0-default-rtdb.asia-southeast1.firebasedatabase.app",
   });
 }
 
