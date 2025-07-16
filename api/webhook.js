@@ -11,11 +11,14 @@ if (!admin.apps.length) {
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://appendiks-e02a8-default-rtdb.firebaseio.com"
+    databaseURL: "https://appendiks-e02a8-default-rtdb.firebaseio.com",
   });
 }
 
 const db = admin.database();
+
+// Fungsi untuk membersihkan key Firebase dari karakter ilegal
+const sanitizeFirebaseKey = (key) => key?.replace(/[.#$\[\]]/g, "") || "";
 
 export default async (req, res) => {
   if (req.method !== "POST") {
@@ -26,7 +29,6 @@ export default async (req, res) => {
     const update = req.body;
     const message = update.message || update.edited_message;
     if (!message || !message.text) {
-      console.log("⚠️ Update tidak memuat message.text:", JSON.stringify(update, null, 2));
       return res.status(200).send("OK");
     }
 
@@ -43,8 +45,13 @@ export default async (req, res) => {
     };
 
     const getData = async (path) => {
-      const snap = await db.ref(path).once("value");
-      return snap.exists() ? snap.val() : null;
+      try {
+        const snap = await db.ref(path).once("value");
+        return snap.exists() ? snap.val() : null;
+      } catch (err) {
+        console.error(`Firebase error at path ${path}:`, err.message);
+        return null;
+      }
     };
 
     const isAuthorized = async (id) => {
@@ -52,7 +59,8 @@ export default async (req, res) => {
       return !!data;
     };
 
-   if (text === "/start") {
+    // Handle /start
+    if (text === "/start") {
   await sendMessage(`👋 *Halo, Petugas Enumerator!*
 
 Selamat datang di *Bot Pendataan Pendaratan Ikan Appendiks* 🐟🚤.
@@ -80,28 +88,20 @@ Terima kasih telah menjadi bagian dari *Enumerasi Cerdas Appendiks*.
 }
 
 
+    // Handle /format
     if (text === "/format") {
-      await sendMessage(`✏️ *Format Input:*
-
-\`\`\`
-L OR NL : NL
-Kode Kapal : 1422
-Kode Alat : JIH
-Satuan : KG
-Kode Ikan : TNL
-Volume : 200
-\`\`\`
-_Tekan lama untuk salin._`);
+      await sendMessage(`✏️ *Format Input:*\n\n\`\`\`\nL OR NL : NL\nKode Kapal : 1422\nKode Alat : JIH\nSatuan : KG\nKode Ikan : TNL\nVolume : 200\n\`\`\`\n_Tekan lama untuk salin._`);
       return res.status(200).json({ ok: true });
     }
 
+    // Handle /daftar
     if (text === "/daftar") {
       const nama = `${message.from.first_name || ""} ${message.from.last_name || ""}`.trim();
       const username = message.from.username || "-";
       const userRef = db.ref(`petugasTelegram/${userId}`);
       const newUserRef = db.ref(`penggunaBaru/${userId}`);
-
       const snap = await userRef.once("value");
+
       if (snap.exists()) {
         await sendMessage("✅ Anda sudah terdaftar dan dapat menggunakan bot ini.");
       } else {
@@ -116,12 +116,13 @@ _Tekan lama untuk salin._`);
       return res.status(200).json({ ok: true });
     }
 
-    // Input data pendaratan
+    // Cek otorisasi
     if (!await isAuthorized(userId)) {
       await sendMessage("❌ Anda belum terdaftar sebagai petugas.");
       return res.status(200).json({ ok: true });
     }
 
+    // Proses input data
     const lines = text.split("\n");
     const data = {};
     lines.forEach(line => {
@@ -147,9 +148,13 @@ _Tekan lama untuk salin._`);
       return res.status(200).json({ ok: true });
     }
 
-    const kapalData = await getData(`kapal/${data.KodeKapal}`);
-    const alatData = await getData(`alattangkap/${data.KodeAlat}`);
-    const ikanData = await getData(`jenisikan/${data.KodeIkan}`);
+    const kodeKapal = sanitizeFirebaseKey(data.KodeKapal);
+    const kodeAlat = sanitizeFirebaseKey(data.KodeAlat);
+    const kodeIkan = sanitizeFirebaseKey(data.KodeIkan);
+
+    const kapalData = await getData(`kapal/${kodeKapal}`);
+    const alatData = await getData(`alattangkap/${kodeAlat}`);
+    const ikanData = await getData(`jenisikan/${kodeIkan}`);
 
     if (!kapalData || !alatData || !ikanData) {
       await sendMessage("❌ Kode Kapal, Alat, atau Ikan tidak ditemukan.");
@@ -183,13 +188,14 @@ _Tekan lama untuk salin._`);
 - Volume: ${payload.volume} ${payload.satuan}`);
 
     return res.status(200).json({ ok: true });
+
   } catch (error) {
     console.error("Webhook Error:", error);
     await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: process.env.ADMIN_CHAT_ID || YOUR_TELEGRAM_CHAT_ID,
+        chat_id: process.env.ADMIN_CHAT_ID || message?.from?.id,
         text: `🚨 Bot error:\n${error.message}`
       }),
     });
